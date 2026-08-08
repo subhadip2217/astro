@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cosmic Numerology | Life Path & Rashi Calculator</title>
+  <meta name="description" content="Discover your Life Path Number, Birth Number, Rashi, personality traits, lucky numbers & colors. Fully private – calculated in your browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg-deep: #050510;
+      --bg-card: rgba(15, 15, 35, 0.85);
+      --glow-purple: #a855f7;
+      --glow-cyan: #22d3ee;
+      --glow-pink: #ec4899;
+      --glow-gold: #fbbf24;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border-glow: rgba(168, 85, 247, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated starfield background */
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+        radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1.5px 1.5px at 50px 160px, #fff, transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(255,255,255,0.6), transparent),
+        radial-gradient(1.5px 1.5px at 130px 80px, #fff, transparent),
+        radial-gradient(1px 1px at 160px 120px, rgba(255,255,255,0.7), transparent);
+      background-size: 200px 200px;
+      animation: twinkle 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes twinkle {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+
+    .glow-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.25;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb1 { width: 400px; height: 400px; background: var(--glow-purple); top: -100px; left: -100px; }
+    .orb2 { width: 300px; height: 300px; background: var(--glow-cyan); bottom: 10%; right: -50px; }
+    .orb3 { width: 250px; height: 250px; background: var(--glow-pink); top: 40%; left: 60%; }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-top: 1rem;
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--glow-cyan), var(--glow-purple), var(--glow-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 1px;
+      margin-bottom: 0.4rem;
+    }
+
+    .tagline {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
+
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.8rem;
+      padding: 0.35rem 0.9rem;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 999px;
+      font-size: 0.75rem;
+      color: var(--glow-cyan);
+    }
+
+    /* Input Card */
+    .input-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 1.8rem 1.5rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 40px rgba(168, 85, 247, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .input-card h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.15rem;
+      margin-bottom: 1.2rem;
+      text-align: center;
+      color: var(--glow-gold);
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+
+    input[type="date"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="date"]:focus,
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--glow-purple);
+      box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+    }
+
+    /* Custom date input styling for dark theme */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.95rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--glow-purple), var(--glow-pink));
+      color: white;
+      box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(168, 85, 247, 0.55);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid rgba(34, 211, 238, 0.5);
+      color: var(--glow-cyan);
+      margin-top: 0.8rem;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(34, 211, 238, 0.1);
+    }
+
+    .btn-icon {
+      width: auto;
+      padding: 0.7rem 1.2rem;
+      font-size: 0.85rem;
+    }
+
+    /* Results Section */
+    .results {
+      display: none;
+      margin-top: 1.5rem;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .results.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 1.6rem 1.4rem;
+      margin-bottom: 1.2rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.12);
+    }
+
+    .result-card.hero {
+      text-align: center;
+      background: linear-gradient(160deg, rgba(168, 85, 247, 0.15), rgba(34, 211, 238, 0.08));
+      border-color: rgba(168, 85, 247, 0.5);
+    }
+
+    .number-display {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(3rem, 12vw, 4.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--glow-gold), var(--glow-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.1;
+      margin: 0.3rem 0;
+    }
+
+    .number-label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .section-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      color: var(--glow-cyan);
+      margin-bottom: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+    }
+
+    @media (max-width: 520px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .mini-card {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mini-card h4 {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.4rem;
+      font-weight: 500;
+    }
+
+    .mini-card p, .mini-card .value {
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    .rashi-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 999px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      color: var(--glow-gold);
+      margin-top: 0.5rem;
+    }
+
+    .personality-text {
+      line-height: 1.65;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.6rem;
+    }
+
+    .tag {
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+    }
+
+    .tag-strength {
+      background: rgba(34, 197, 94, 0.15);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .tag-weak {
+      background: rgba(248, 113, 113, 0.12);
+      color: #f87171;
+      border: 1px solid rgba(248, 113, 113, 0.25);
+    }
+
+    .color-swatch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-right: 0.8rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .swatch {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    }
+
+    .vibe-box {
+      background: linear-gradient(135deg, rgba(236, 72, 153, 0.12), rgba(168, 85, 247, 0.12));
+      border: 1px solid rgba(236, 72, 153, 0.3);
+      border-radius: 14px;
+      padding: 1.1rem;
+      text-align: center;
+    }
+
+    .vibe-text {
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: #f9a8d4;
+    }
+
+    .compat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+    }
+
+    .compat-item {
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 0.8rem;
+      text-align: center;
+    }
+
+    .compat-item .label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.3rem;
+    }
+
+    .compat-item .nums {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.1rem;
+      color: var(--glow-cyan);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.7rem;
+      margin-top: 1.2rem;
+      justify-content: center;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 2.5rem;
+      padding: 1rem;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    footer a {
+      color: var(--glow-cyan);
+      text-decoration: none;
+    }
+
+    /* Capture area for download */
+    #capture-area {
+      background: var(--bg-deep);
+      padding: 1.5rem;
+      border-radius: 16px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .btn.loading .spinner {
+      display: inline-block;
+    }
+
+    .btn.loading .btn-text {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <div class="glow-orb orb1"></div>
+  <div class="glow-orb orb2"></div>
+  <div class="glow-orb orb3"></div>
+
+  <div class="container">
+    <header>
+      <div class="logo">✨ Cosmic Numerology</div>
+      <p class="tagline">Unlock your Life Path, Rashi & cosmic blueprint</p>
+      <div class="privacy-badge">🔒 100% Private — calculated only in your browser</div>
+    </header>
+
+    <!-- INPUT SECTION -->
+    <div id="input-section" class="input-card">
+      <h2>Enter Your Birth Details</h2>
+      <div class="form-group">
+        <label for="name">Your Name (optional)</label>
+        <input type="text" id="name" placeholder="e.g. Aarav Sharma" maxlength="40">
+      </div>
+      <div class="form-group">
+        <label for="dob">Date of Birth *</label>
+        <input type="date" id="dob" required>
+      </div>
+      <button class="btn btn-primary" id="calculate-btn" onclick="calculate()">
+        <span class="btn-text">🔮 Reveal My Cosmic Profile</span>
+        <span class="spinner"></span>
+      </button>
+    </div>
+
+    <!-- RESULTS SECTION -->
+    <div id="results" class="results">
+      <div id="capture-area">
+        <!-- Hero Card -->
+        <div class="result-card hero">
+          <div class="number-label">Life Path Number</div>
+          <div class="number-display" id="life-path">—</div>
+          <div id="name-display" style="margin-top:0.5rem;font-size:1.1rem;color:var(--glow-gold);"></div>
+          <div class="rashi-badge" id="rashi-badge">♈ —</div>
+          <p style="margin-top:0.8rem;font-size:0.9rem;color:var(--text-secondary);">
+            Birth Number: <strong id="birth-number" style="color:var(--glow-cyan);">—</strong>
+          </p>
+        </div>
+
+        <!-- Personality -->
+        <div class="result-card">
+          <div class="section-title">✨ Personality Snapshot</div>
+          <p class="personality-text" id="personality"></p>
+        </div>
+
+        <!-- Strengths & Weaknesses -->
+        <div class="result-card">
+          <div class="section-title">💪 Strengths & Growth Areas</div>
+          <div class="grid-2">
+            <div class="mini-card">
+              <h4>Strengths</h4>
+              <div class="tags" id="strengths"></div>
+            </div>
+            <div class="mini-card">
+              <h4>Watch-outs</h4>
+              <div class="tags" id="weaknesses"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lucky Elements -->
+        <div class="result-card">
+          <div class="section-title">🎯 Lucky Elements</div>
+          <div class="grid-2">
+            <div class="mini-card">
+              <h4>Lucky Numbers</h4>
+              <p class="value" id="lucky-numbers">—</p>
+            </div>
+            <div class="mini-card">
+              <h4>Lucky Colours</h4>
+              <div id="lucky-colours"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Vibe -->
+        <div class="result-card">
+          <div class="section-title">📅 Today's Cosmic Vibe</div>
+          <div class="vibe-box">
+            <p class="vibe-text" id="today-vibe"></p>
+          </div>
+        </div>
+
+        <!-- Compatibility -->
+        <div class="result-card">
+          <div class="section-title">💕 Compatibility Insights</div>
+          <div class="compat-grid">
+            <div class="compat-item">
+              <div class="label">Best Friends / Partners</div>
+              <div class="nums" id="compat-good">—</div>
+            </div>
+            <div class="compat-item">
+              <div class="label">Challenging Matches</div>
+              <div class="nums" id="compat-challenge">—</div>
+            </div>
+          </div>
+          <p style="margin-top:0.8rem;font-size:0.85rem;color:var(--text-secondary);text-align:center;" id="compat-note"></p>
+        </div>
+
+        <!-- Creative extras -->
+        <div class="result-card">
+          <div class="section-title">🌟 Cosmic Extras</div>
+          <div class="grid-2">
+            <div class="mini-card">
+              <h4>Power Day</h4>
+              <p class="value" id="power-day">—</p>
+            </div>
+            <div class="mini-card">
+              <h4>Element Affinity</h4>
+              <p class="value" id="element">—</p>
+            </div>
+          </div>
+          <p style="margin-top:0.9rem;font-size:0.9rem;color:#a5b4fc;" id="mantra"></p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions">
+        <button class="btn btn-secondary btn-icon" onclick="downloadImage()">📸 Download Card</button>
+        <button class="btn btn-secondary btn-icon" onclick="shareResult()">🔗 Share</button>
+        <button class="btn btn-primary btn-icon" onclick="resetForm()">🔄 Calculate Again</button>
+      </div>
+    </div>
+
+    <footer>
+      Made with ✨ for cosmic curiosity · <a href="https://github.com" target="_blank">Open Source</a><br>
+      All calculations run locally. Your data never leaves this device.
+    </footer>
+  </div>
+
+  <script>
+    // ========== DATA ==========
+    const lifePathData = {
+      1: {
+        title: "The Pioneer",
+        personality: "You are a natural leader with a pioneering spirit. Independent, ambitious and original, you thrive when forging your own path. Your confidence inspires others, and you have the courage to start new ventures that others only dream about.",
+        strengths: ["Leadership", "Independence", "Innovation", "Determination", "Courage"],
+        weaknesses: ["Impatience", "Stubbornness", "Can be bossy", "Fear of failure"],
+        luckyNumbers: [1, 10, 19, 28],
+        colours: [{name:"Red",hex:"#ef4444"},{name:"Orange",hex:"#f97316"},{name:"Gold",hex:"#eab308"}],
+        compatGood: [1, 5, 7],
+        compatChallenge: [4, 8],
+        element: "Fire 🔥",
+        powerDay: "Sunday",
+        mantra: "I lead with courage and create my own destiny."
+      },
+      2: {
+        title: "The Diplomat",
+        personality: "Sensitive, intuitive and cooperative, you are the peacemaker. You excel at bringing harmony to relationships and groups. Your empathy and gentle nature make you a trusted friend and partner who deeply understands others' emotions.",
+        strengths: ["Empathy", "Diplomacy", "Intuition", "Patience", "Teamwork"],
+        weaknesses: ["Over-sensitivity", "Indecisiveness", "People-pleasing", "Avoids conflict"],
+        luckyNumbers: [2, 11, 20, 29],
+        colours: [{name:"Soft Blue",hex:"#60a5fa"},{name:"Silver",hex:"#94a3b8"},{name:"White",hex:"#f8fafc"}],
+        compatGood: [2, 4, 8],
+        compatChallenge: [1, 9],
+        element: "Water 💧",
+        powerDay: "Monday",
+        mantra: "I create peace and harmony wherever I go."
+      },
+      3: {
+        title: "The Creator",
+        personality: "Expressive, joyful and imaginative, you light up any room. Communication and creativity are your superpowers. You have a gift for words, art or performance and bring optimism and humour to every situation.",
+        strengths: ["Creativity", "Communication", "Optimism", "Social charm", "Adaptability"],
+        weaknesses: ["Scattered energy", "Overthinking", "Mood swings", "Avoids routine"],
+        luckyNumbers: [3, 12, 21, 30],
+        colours: [{name:"Yellow",hex:"#eab308"},{name:"Purple",hex:"#a855f7"},{name:"Pink",hex:"#ec4899"}],
+        compatGood: [3, 6, 9],
+        compatChallenge: [4, 8],
+        element: "Air 🌬️",
+        powerDay: "Thursday",
+        mantra: "My creativity flows freely and inspires the world."
+      },
+      4: {
+        title: "The Builder",
+        personality: "Practical, reliable and hardworking, you build solid foundations in life. You value order, loyalty and long-term results. Others depend on your steady presence and your ability to turn plans into reality.",
+        strengths: ["Discipline", "Reliability", "Organization", "Loyalty", "Practicality"],
+        weaknesses: ["Rigidity", "Workaholic tendencies", "Resistance to change", "Overly critical"],
+        luckyNumbers: [4, 13, 22, 31],
+        colours: [{name:"Green",hex:"#22c55e"},{name:"Brown",hex:"#a16207"},{name:"Navy",hex:"#1e3a8a"}],
+        compatGood: [2, 4, 8],
+        compatChallenge: [3, 5],
+        element: "Earth 🌍",
+        powerDay: "Saturday",
+        mantra: "I build lasting success through patience and effort."
+      },
+      5: {
+        title: "The Freedom Seeker",
+        personality: "Adventurous, curious and versatile, you crave freedom and new experiences. Change energizes you. You are progressive, quick-thinking and magnetic — a natural traveler of both the world and the mind.",
+        strengths: ["Adaptability", "Curiosity", "Freedom-loving", "Persuasiveness", "Resourcefulness"],
+        weaknesses: ["Restlessness", "Impulsiveness", "Commitment issues", "Scattered focus"],
+        luckyNumbers: [5, 14, 23],
+        colours: [{name:"Turquoise",hex:"#14b8a6"},{name:"Light Blue",hex:"#38bdf8"},{name:"Silver",hex:"#94a3b8"}],
+        compatGood: [1, 5, 7],
+        compatChallenge: [4, 6],
+        element: "Air 🌬️",
+        powerDay: "Wednesday",
+        mantra: "I embrace change and explore life with open arms."
+      },
+      6: {
+        title: "The Nurturer",
+        personality: "Loving, responsible and artistic, you thrive when caring for others and creating beauty. Home, family and harmony matter deeply to you. You have a natural sense of aesthetics and a big heart.",
+        strengths: ["Compassion", "Responsibility", "Artistic sense", "Loyalty", "Supportiveness"],
+        weaknesses: ["Over-protective", "Self-sacrifice", "Perfectionism", "Worry"],
+        luckyNumbers: [6, 15, 24],
+        colours: [{name:"Pink",hex:"#ec4899"},{name:"Rose Gold",hex:"#f43f5e"},{name:"Light Green",hex:"#86efac"}],
+        compatGood: [3, 6, 9],
+        compatChallenge: [1, 5],
+        element: "Earth 🌍",
+        powerDay: "Friday",
+        mantra: "Love and beauty flow through everything I create."
+      },
+      7: {
+        title: "The Seeker",
+        personality: "Analytical, introspective and spiritual, you seek deeper truths. You have a sharp mind and a contemplative nature. Solitude recharges you, and you often become a specialist or wise advisor in your field.",
+        strengths: ["Wisdom", "Analysis", "Intuition", "Independence", "Spiritual depth"],
+        weaknesses: ["Isolation", "Overthinking", "Skepticism", "Detachment"],
+        luckyNumbers: [7, 16, 25],
+        colours: [{name:"Purple",hex:"#a855f7"},{name:"Indigo",hex:"#6366f1"},{name:"Violet",hex:"#8b5cf6"}],
+        compatGood: [1, 5, 7],
+        compatChallenge: [2, 8],
+        element: "Water 💧",
+        powerDay: "Monday",
+        mantra: "I trust my inner wisdom and seek truth with clarity."
+      },
+      8: {
+        title: "The Achiever",
+        personality: "Ambitious, powerful and goal-oriented, you are built for success in the material world. You have strong organizational skills and the drive to create abundance. Authority comes naturally to you.",
+        strengths: ["Ambition", "Leadership", "Financial acumen", "Resilience", "Authority"],
+        weaknesses: ["Workaholism", "Materialism", "Control issues", "Impatience with weakness"],
+        luckyNumbers: [8, 17, 26],
+        colours: [{name:"Black",hex:"#1e293b"},{name:"Dark Blue",hex:"#1e40af"},{name:"Gold",hex:"#eab308"}],
+        compatGood: [2, 4, 8],
+        compatChallenge: [3, 7],
+        element: "Earth 🌍",
+        powerDay: "Saturday",
+        mantra: "I create abundance and lead with integrity."
+      },
+      9: {
+        title: "The Humanitarian",
+        personality: "Compassionate, idealistic and wise, you feel a deep connection to humanity. You are generous, artistic and often drawn to causes greater than yourself. Your life is about giving and elevating others.",
+        strengths: ["Compassion", "Idealism", "Creativity", "Generosity", "Wisdom"],
+        weaknesses: ["Emotional extremes", "Self-sacrifice", "Disappointment with world", "Letting go"],
+        luckyNumbers: [9, 18, 27],
+        colours: [{name:"Crimson",hex:"#dc2626"},{name:"Gold",hex:"#eab308"},{name:"White",hex:"#f8fafc"}],
+        compatGood: [3, 6, 9],
+        compatChallenge: [4, 8],
+        element: "Fire 🔥",
+        powerDay: "Tuesday",
+        mantra: "I serve the greater good with an open heart."
+      },
+      11: {
+        title: "The Intuitive Master",
+        personality: "As a Master Number, you carry heightened spiritual awareness and intuition. You are idealistic, inspirational and highly sensitive. Your mission often involves illuminating others through insight, teaching or creative vision.",
+        strengths: ["Intuition", "Inspiration", "Spiritual insight", "Idealism", "Charisma"],
+        weaknesses: ["Nervous tension", "Over-sensitivity", "Self-doubt", "Unrealistic expectations"],
+        luckyNumbers: [11, 2, 20, 29],
+        colours: [{name:"Silver",hex:"#94a3b8"},{name:"White",hex:"#f8fafc"},{name:"Light Blue",hex:"#7dd3fc"}],
+        compatGood: [2, 4, 6],
+        compatChallenge: [1, 8],
+        element: "Air 🌬️",
+        powerDay: "Monday",
+        mantra: "I channel divine inspiration and light the way for others."
+      },
+      22: {
+        title: "The Master Builder",
+        personality: "The rare Master Builder combines practicality with visionary power. You have the potential to create large-scale positive change in the world. Discipline + dream = extraordinary results when you stay grounded.",
+        strengths: ["Vision", "Practical mastery", "Leadership", "Manifestation power", "Discipline"],
+        weaknesses: ["Overwhelm", "Self-imposed pressure", "Workaholism", "Fear of failure at high stakes"],
+        luckyNumbers: [22, 4, 13, 31],
+        colours: [{name:"Deep Green",hex:"#166534"},{name:"Gold",hex:"#eab308"},{name:"Black",hex:"#0f172a"}],
+        compatGood: [4, 6, 8],
+        compatChallenge: [5, 7],
+        element: "Earth 🌍",
+        powerDay: "Saturday",
+        mantra: "I build lasting legacies that uplift humanity."
+      }
+    };
+
+    // Approximate Vedic Sun Sign (Rashi) date ranges
+    // Note: True Moon Sign (Janma Rashi) requires birth time & place.
+    // This uses common sidereal approximate ranges for educational purposes.
+    const rashiData = [
+      { name: "Mesha (Aries)", symbol: "♈", start: [3, 21], end: [4, 19], element: "Fire" },
+      { name: "Vrishabha (Taurus)", symbol: "♉", start: [4, 20], end: [5, 20], element: "Earth" },
+      { name: "Mithuna (Gemini)", symbol: "♊", start: [5, 21], end: [6, 20], element: "Air" },
+      { name: "Karka (Cancer)", symbol: "♋", start: [6, 21], end: [7, 22], element: "Water" },
+      { name: "Simha (Leo)", symbol: "♌", start: [7, 23], end: [8, 22], element: "Fire" },
+      { name: "Kanya (Virgo)", symbol: "♍", start: [8, 23], end: [9, 22], element: "Earth" },
+      { name: "Tula (Libra)", symbol: "♎", start: [9, 23], end: [10, 22], element: "Air" },
+      { name: "Vrishchika (Scorpio)", symbol: "♏", start: [10, 23], end: [11, 21], element: "Water" },
+      { name: "Dhanu (Sagittarius)", symbol: "♐", start: [11, 22], end: [12, 21], element: "Fire" },
+      { name: "Makara (Capricorn)", symbol: "♑", start: [12, 22], end: [1, 19], element: "Earth" },
+      { name: "Kumbha (Aquarius)", symbol: "♒", start: [1, 20], end: [2, 18], element: "Air" },
+      { name: "Meena (Pisces)", symbol: "♓", start: [2, 19], end: [3, 20], element: "Water" }
+    ];
+
+    // ========== CORE CALCULATIONS ==========
+    function reduceToSingle(n, allowMaster = true) {
+      while (n > 9) {
+        if (allowMaster && (n === 11 || n === 22 || n === 33)) return n;
+        n = String(n).split('').reduce((a, b) => a + Number(b), 0);
+      }
+      return n;
+    }
+
+    function calculateLifePath(day, month, year) {
+      // Best practice: reduce month, day, year separately first
+      const m = reduceToSingle(month, true);
+      const d = reduceToSingle(day, true);
+      const y = reduceToSingle(
+        String(year).split('').reduce((a, b) => a + Number(b), 0),
+        true
+      );
+      return reduceToSingle(m + d + y, true);
+    }
+
+    function calculateBirthNumber(day) {
+      return reduceToSingle(day, false); // Birth day number usually reduced to 1-9
+    }
+
+    function getRashi(month, day) {
+      // month is 1-12
+      for (const r of rashiData) {
+        const [sm, sd] = r.start;
+        const [em, ed] = r.end;
+        if (sm <= em) {
+          // normal range
+          if ((month === sm && day >= sd) || (month === em && day <= ed) || (month > sm && month < em)) {
+            return r;
+          }
+        } else {
+          // wraps year (Capricorn)
+          if ((month === sm && day >= sd) || (month === em && day <= ed) || month > sm || month < em) {
+            return r;
+          }
+        }
+      }
+      return rashiData[0];
+    }
+
+    function getTodayVibe(lifePath) {
+      const today = new Date();
+      const dayNum = today.getDate();
+      const personalDay = reduceToSingle(dayNum + lifePath, false);
+      const vibes = {
+        1: "A day for bold action and new beginnings. Take the lead!",
+        2: "Focus on relationships and gentle cooperation. Listen more.",
+        3: "Express yourself! Creativity and social energy are high.",
+        4: "Build, organize, and stay disciplined. Progress through structure.",
+        5: "Expect the unexpected. Freedom and adventure call.",
+        6: "Nurture yourself and loved ones. Home and harmony matter.",
+        7: "Quiet reflection and study bring insight. Trust your intuition.",
+        8: "Power and practical results are favored. Manifest abundance.",
+        9: "Release and give. Acts of kindness return multiplied."
+      };
+      return vibes[personalDay] || vibes[1];
+    }
+
+    // ========== UI ==========
+    function calculate() {
+      const dobInput = document.getElementById('dob');
+      const nameInput = document.getElementById('name');
+      const btn = document.getElementById('calculate-btn');
+
+      if (!dobInput.value) {
+        alert('Please select your Date of Birth');
+        return;
+      }
+
+      btn.classList.add('loading');
+
+      // Simulate a tiny delay for polish
+      setTimeout(() => {
+        const dob = new Date(dobInput.value + 'T12:00:00'); // avoid timezone shift
+        const day = dob.getDate();
+        const month = dob.getMonth() + 1;
+        const year = dob.getFullYear();
+        const name = nameInput.value.trim();
+
+        const lifePath = calculateLifePath(day, month, year);
+        const birthNum = calculateBirthNumber(day);
+        const rashi = getRashi(month, day);
+        const data = lifePathData[lifePath] || lifePathData[reduceToSingle(lifePath, false)];
+
+        // Populate UI
+        document.getElementById('life-path').textContent = lifePath;
+        document.getElementById('birth-number').textContent = birthNum;
+        document.getElementById('name-display').textContent = name ? `✦ ${name}` : '';
+        document.getElementById('rashi-badge').innerHTML = `${rashi.symbol} ${rashi.name}`;
+
+        document.getElementById('personality').textContent = data.personality;
+
+        const strengthsEl = document.getElementById('strengths');
+        strengthsEl.innerHTML = data.strengths.map(s => `<span class="tag tag-strength">${s}</span>`).join('');
+
+        const weakEl = document.getElementById('weaknesses');
+        weakEl.innerHTML = data.weaknesses.map(w => `<span class="tag tag-weak">${w}</span>`).join('');
+
+        document.getElementById('lucky-numbers').textContent = data.luckyNumbers.join(', ');
+
+        const coloursEl = document.getElementById('lucky-colours');
+        coloursEl.innerHTML = data.colours.map(c => 
+          `<span class="color-swatch"><span class="swatch" style="background:${c.hex}"></span>${c.name}</span>`
+        ).join('');
+
+        document.getElementById('today-vibe').textContent = getTodayVibe(lifePath);
+
+        document.getElementById('compat-good').textContent = data.compatGood.join(' · ');
+        document.getElementById('compat-challenge').textContent = data.compatChallenge.join(' · ');
+        document.getElementById('compat-note').textContent = 
+          `Life Path ${lifePath} (${data.title}) vibes best with the numbers shown above.`;
+
+        document.getElementById('power-day').textContent = data.powerDay;
+        document.getElementById('element').textContent = data.element;
+        document.getElementById('mantra').textContent = `✨ Mantra: “${data.mantra}”`;
+
+        // Show results
+        document.getElementById('input-section').style.display = 'none';
+        document.getElementById('results').classList.add('show');
+
+        btn.classList.remove('loading');
+
+        // Scroll to results
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+    }
+
+    function resetForm() {
+      document.getElementById('results').classList.remove('show');
+      document.getElementById('input-section').style.display = 'block';
+      document.getElementById('dob').value = '';
+      document.getElementById('name').value = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function downloadImage() {
+      const area = document.getElementById('capture-area');
+      try {
+        const canvas = await html2canvas(area, {
+          backgroundColor: '#050510',
+          scale: 2,
+          useCORS: true,
+          logging: false
+        });
+        const link = document.createElement('a');
+        link.download = `cosmic-numerology-${document.getElementById('life-path').textContent}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        alert('Could not generate image. Please try again or take a screenshot.');
+        console.error(err);
+      }
+    }
+
+    async function shareResult() {
+      const lifePath = document.getElementById('life-path').textContent;
+      const rashi = document.getElementById('rashi-badge').textContent;
+      const text = `My Cosmic Numerology Profile ✨\nLife Path: ${lifePath}\nRashi: ${rashi}\nCalculated privately at Cosmic Numerology`;
+
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'My Cosmic Numerology',
+            text: text,
+            url: window.location.href
+          });
+        } catch (e) {
+          // user cancelled
+        }
+      } else {
+        // Fallback: copy to clipboard
+        try {
+          await navigator.clipboard.writeText(text + '\n' + window.location.href);
+          alert('Result copied to clipboard! Paste it anywhere to share.');
+        } catch {
+          alert(text);
+        }
+      }
+    }
+
+    // Allow Enter key
+    document.getElementById('dob').addEventListener('keydown', e => {
+      if (e.key === 'Enter') calculate();
+    });
+  </script>
+</body>
+</html>
