@@ -30,6 +30,13 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
+      - name: Install Aria launcher icon
+        working-directory: .
+        run: |
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+          base64 -d android/icon/aria_icon_512.png.b64 > android/app/src/main/res/mipmap-mdpi/aria_icon.webp
+          file android/app/src/main/res/mipmap-mdpi/aria_icon.webp
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
