@@ -18,6 +18,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import org.json.JSONObject;
+
 public class MainActivity extends AppCompatActivity {
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int MEDIA_PERMISSION_REQUEST = 1002;
@@ -27,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private PermissionRequest pendingPermissionRequest;
+    private String pendingAccessToken;
+    private String pendingRefreshToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,13 +40,11 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(com.subhadip.aria.R.id.webview);
         configureWebView();
 
-        if (savedInstanceState == null) {
-            if (!handleAuthCallback(getIntent())) {
-                webView.loadUrl(ARIA_URL);
-            }
-        } else {
+        if (savedInstanceState != null) {
             webView.restoreState(savedInstanceState);
-            handleAuthCallback(getIntent());
+        }
+        if (!handleAuthCallback(getIntent()) && savedInstanceState == null) {
+            webView.loadUrl(ARIA_URL);
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -61,7 +63,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        handleAuthCallback(intent);
+        if (!handleAuthCallback(intent)) {
+            webView.loadUrl(ARIA_URL);
+        }
     }
 
     private boolean handleAuthCallback(Intent intent) {
@@ -69,18 +73,37 @@ public class MainActivity extends AppCompatActivity {
         Uri uri = intent.getData();
         if (!AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) return false;
 
-        // Supabase implicit flow returns tokens in the fragment. Recreate a
-        // normal HTTPS URL so supabase-js inside the WebView can detect and
-        // persist the session normally.
-        StringBuilder callbackUrl = new StringBuilder(ARIA_URL);
-        if (uri.getQuery() != null && !uri.getQuery().isEmpty()) {
-            callbackUrl.append('?').append(uri.getQuery());
+        String fragment = uri.getFragment();
+        if (fragment == null || fragment.isEmpty()) return false;
+
+        Uri tokenUri = Uri.parse("https://aria.invalid/?" + fragment);
+        pendingAccessToken = tokenUri.getQueryParameter("access_token");
+        pendingRefreshToken = tokenUri.getQueryParameter("refresh_token");
+
+        if (pendingAccessToken == null || pendingRefreshToken == null) {
+            return false;
         }
-        if (uri.getFragment() != null && !uri.getFragment().isEmpty()) {
-            callbackUrl.append('#').append(uri.getFragment());
-        }
-        webView.loadUrl(callbackUrl.toString());
+
+        // Load a clean HTTPS page. The tokens are handed directly to
+        // supabase-js through the Android/WebView bridge after the page loads.
+        webView.loadUrl(ARIA_URL);
         return true;
+    }
+
+    private void injectPendingSession() {
+        if (pendingAccessToken == null || pendingRefreshToken == null) return;
+
+        try {
+            String accessJson = JSONObject.quote(pendingAccessToken);
+            String refreshJson = JSONObject.quote(pendingRefreshToken);
+            String js = "(async()=>{if(window.__ARIA_SET_AUTH){return await window.__ARIA_SET_AUTH(" + accessJson + "," + refreshJson + ");}return false;})()";
+            webView.evaluateJavascript(js, value -> {
+                pendingAccessToken = null;
+                pendingRefreshToken = null;
+            });
+        } catch (Exception ignored) {
+            // Retry on the next page load if the bridge is not available yet.
+        }
     }
 
     private void configureWebView() {
@@ -96,6 +119,12 @@ public class MainActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                injectPendingSession();
+            }
+
+            @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if (AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) {
@@ -109,9 +138,6 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
 
-                // Google and other OAuth pages must run in the system browser,
-                // not inside the Android WebView. The callback returns to the
-                // app through aria://auth-callback.
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (Exception ignored) {
