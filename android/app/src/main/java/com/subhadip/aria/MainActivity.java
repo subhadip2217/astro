@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int MEDIA_PERMISSION_REQUEST = 1002;
     private static final String ARIA_URL = "https://aigf-wheat.vercel.app/";
+    private static final String AUTH_SCHEME = "aria";
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -36,9 +37,12 @@ public class MainActivity extends AppCompatActivity {
         configureWebView();
 
         if (savedInstanceState == null) {
-            webView.loadUrl(ARIA_URL);
+            if (!handleAuthCallback(getIntent())) {
+                webView.loadUrl(ARIA_URL);
+            }
         } else {
             webView.restoreState(savedInstanceState);
+            handleAuthCallback(getIntent());
         }
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -51,6 +55,32 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleAuthCallback(intent);
+    }
+
+    private boolean handleAuthCallback(Intent intent) {
+        if (intent == null || intent.getData() == null) return false;
+        Uri uri = intent.getData();
+        if (!AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) return false;
+
+        // Supabase implicit flow returns tokens in the fragment. Recreate a
+        // normal HTTPS URL so supabase-js inside the WebView can detect and
+        // persist the session normally.
+        StringBuilder callbackUrl = new StringBuilder(ARIA_URL);
+        if (uri.getQuery() != null && !uri.getQuery().isEmpty()) {
+            callbackUrl.append('?').append(uri.getQuery());
+        }
+        if (uri.getFragment() != null && !uri.getFragment().isEmpty()) {
+            callbackUrl.append('#').append(uri.getFragment());
+        }
+        webView.loadUrl(callbackUrl.toString());
+        return true;
     }
 
     private void configureWebView() {
@@ -68,12 +98,25 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                if (AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) {
+                    handleAuthCallback(new Intent(Intent.ACTION_VIEW, uri));
+                    return true;
+                }
+
                 String host = uri.getHost();
                 if (host != null && (host.equals("aigf-wheat.vercel.app") || host.endsWith(".vercel.app"))) {
                     view.loadUrl(uri.toString());
                     return true;
                 }
-                startActivity(new Intent(Intent.ACTION_VIEW, uri));
+
+                // Google and other OAuth pages must run in the system browser,
+                // not inside the Android WebView. The callback returns to the
+                // app through aria://auth-callback.
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
+                } catch (Exception ignored) {
+                    // Ignore URLs for which Android has no external handler.
+                }
                 return true;
             }
         });
