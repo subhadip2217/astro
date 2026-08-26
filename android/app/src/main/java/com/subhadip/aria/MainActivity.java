@@ -64,11 +64,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    NOTIFICATION_CHANNEL_ID,
-                    "Aria messages",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
+            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, "Aria messages", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Messages and proactive notifications from Aria");
             channel.enableVibration(true);
             if (notificationManager != null) notificationManager.createNotificationChannel(channel);
@@ -95,20 +91,13 @@ public class MainActivity extends AppCompatActivity {
         if (!notificationsGranted() || notificationManager == null) return;
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                this,
-                id == null ? 0 : id.hashCode(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                ? new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
-                : new Notification.Builder(this);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, id == null ? 0 : id.hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String safeBody = body == null ? "You have a new message from Aria." : body;
+        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? new Notification.Builder(this, NOTIFICATION_CHANNEL_ID) : new Notification.Builder(this);
         builder.setSmallIcon(com.subhadip.aria.R.drawable.ic_stat_aria)
                 .setContentTitle(title == null || title.isEmpty() ? "Aria 💕" : title)
-                .setContentText(body == null ? "You have a new message from Aria." : body)
-                .setStyle(new Notification.BigTextStyle().bigText(body == null ? "You have a new message from Aria." : body))
+                .setContentText(safeBody)
+                .setStyle(new Notification.BigTextStyle().bigText(safeBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setCategory(Notification.CATEGORY_MESSAGE)
@@ -121,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
     public final class AriaNotificationBridge {
         @JavascriptInterface public String getNotificationPermission() { return notificationPermissionState(); }
         @JavascriptInterface public String requestNotificationPermission() {
-            requestNotificationPermission();
+            MainActivity.this.requestNotificationPermission();
             return notificationPermissionState();
         }
         @JavascriptInterface public void showNotification(String title, String body, String id) {
@@ -129,8 +118,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
+    @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         if (!handleAuthCallback(intent)) webView.loadUrl(ARIA_URL);
