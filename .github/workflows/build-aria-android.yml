@@ -37,6 +37,18 @@ jobs:
           base64 -d android/icon/aria_icon_512.png.b64 > android/app/src/main/res/mipmap-mdpi/aria_icon.webp
           file android/app/src/main/res/mipmap-mdpi/aria_icon.webp
 
+      - name: Write google-services.json
+        working-directory: .
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "Missing secret GOOGLE_SERVICES_JSON. Add the full contents of Firebase google-services.json as a repository secret."
+            exit 1
+          fi
+          printf '%s\n' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          echo "google-services.json written"
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
