@@ -8,6 +8,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -42,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String ARIA_URL = "https://aigf-wheat.vercel.app/";
     private static final String FCM_REGISTER_URL = "https://aigf-wheat.vercel.app/api/push/fcm";
     private static final String AUTH_SCHEME = "aria";
-    private static final String NOTIFICATION_CHANNEL_ID = "aria_messages";
+    private static final String NOTIFICATION_CHANNEL_ID = "aria_messages_v2";
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -73,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Warm FCM token early (registration to server happens after login token is available).
         FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful() || task.getResult() == null) return;
@@ -93,6 +94,14 @@ public class MainActivity extends AppCompatActivity {
             );
             channel.setDescription("Messages and proactive notifications from Aria");
             channel.enableVibration(true);
+            channel.setShowBadge(true);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            AudioAttributes audio = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            channel.setSound(sound, audio);
             if (notificationManager != null) notificationManager.createNotificationChannel(channel);
         }
     }
@@ -133,19 +142,20 @@ public class MainActivity extends AppCompatActivity {
                 ? new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
                 : new Notification.Builder(this);
         builder.setSmallIcon(com.subhadip.aria.R.drawable.ic_stat_aria)
-                .setContentTitle(title == null || title.isEmpty() ? "Aria 💕" : title)
+                .setContentTitle(title == null || title.isEmpty() ? "Aria \uD83D\uDC96" : title)
                 .setContentText(safeBody)
                 .setStyle(new Notification.BigTextStyle().bigText(safeBody))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setCategory(Notification.CATEGORY_MESSAGE)
                 .setPriority(Notification.PRIORITY_HIGH)
+                .setDefaults(Notification.DEFAULT_ALL)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setVibrate(new long[]{0, 200, 100, 200});
         int notificationId = id == null ? (int) System.currentTimeMillis() : id.hashCode();
         notificationManager.notify(notificationId, builder.build());
     }
 
-    /** Register FCM device token with Aria backend so pushes work when the app is closed. */
     private void registerFcmTokenWithBackend(String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) return;
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
@@ -201,7 +211,6 @@ public class MainActivity extends AppCompatActivity {
             runOnUiThread(() -> showAriaNotification(title, body, id));
         }
 
-        /** Called from the web app after Google login with the Supabase access token. */
         @JavascriptInterface
         public void registerPushToken(String accessToken) {
             if (accessToken == null || accessToken.isEmpty()) return;
@@ -261,7 +270,6 @@ public class MainActivity extends AppCompatActivity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectPendingSession();
-                // Ask the web session for a token and register FCM if logged in.
                 view.evaluateJavascript(
                         "(async()=>{try{if(window.__ARIA_GET_ACCESS_TOKEN){const t=await window.__ARIA_GET_ACCESS_TOKEN();"
                                 + "if(t&&window.AriaAndroidNotifications){window.AriaAndroidNotifications.registerPushToken(t);}}"
