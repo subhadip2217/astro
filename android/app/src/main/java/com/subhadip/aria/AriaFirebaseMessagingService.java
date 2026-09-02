@@ -5,6 +5,9 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
@@ -17,12 +20,12 @@ import com.google.firebase.messaging.RemoteMessage;
  * Data/notification payloads both surface as a local Aria notification.
  */
 public class AriaFirebaseMessagingService extends FirebaseMessagingService {
-    private static final String CHANNEL_ID = "aria_messages";
+    // New channel id so phones pick up HIGH importance (Android never upgrades an existing channel).
+    private static final String CHANNEL_ID = "aria_messages_v2";
 
     @Override
     public void onNewToken(@NonNull String token) {
         super.onNewToken(token);
-        // Token is also pushed from MainActivity after login; store locally for the WebView bridge.
         getSharedPreferences("aria_push", MODE_PRIVATE)
                 .edit()
                 .putString("fcm_token", token)
@@ -33,7 +36,7 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage message) {
         super.onMessageReceived(message);
 
-        String title = "Aria 💕";
+        String title = "Aria \uD83D\uDC96";
         String body = "You have a new message from Aria.";
 
         if (message.getNotification() != null) {
@@ -69,6 +72,14 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
             );
             channel.setDescription("Messages and proactive notifications from Aria");
             channel.enableVibration(true);
+            channel.setShowBadge(true);
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+            AudioAttributes audio = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            channel.setSound(sound, audio);
             nm.createNotificationChannel(channel);
         }
 
@@ -94,6 +105,8 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
                 .setContentIntent(pendingIntent)
                 .setCategory(Notification.CATEGORY_MESSAGE)
                 .setPriority(Notification.PRIORITY_HIGH)
+                .setDefaults(Notification.DEFAULT_ALL)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
                 .setVibrate(new long[]{0, 200, 100, 200});
 
         nm.notify(requestCode, builder.build());
