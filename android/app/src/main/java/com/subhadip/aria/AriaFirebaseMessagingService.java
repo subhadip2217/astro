@@ -1,6 +1,5 @@
 package com.subhadip.aria;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -11,17 +10,20 @@ import android.net.Uri;
 import android.os.Build;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.Person;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
 /**
- * Receives FCM while the app is backgrounded or closed.
- * Data/notification payloads both surface as a local Aria notification.
+ * Receives FCM while Aria is backgrounded or closed and shows a WhatsApp-style
+ * high-priority message notification with preview, sound, vibration, badge,
+ * grouping and a tap-to-open action.
  */
 public class AriaFirebaseMessagingService extends FirebaseMessagingService {
-    // New channel id so phones pick up HIGH importance (Android never upgrades an existing channel).
-    private static final String CHANNEL_ID = "aria_messages_v2";
+    private static final String CHANNEL_ID = "aria_messages_v3";
+    private static final String GROUP_KEY = "com.subhadip.aria.MESSAGES";
 
     @Override
     public void onNewToken(@NonNull String token) {
@@ -36,16 +38,12 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage message) {
         super.onMessageReceived(message);
 
-        String title = "Aria \uD83D\uDC96";
+        String title = "Aria 💕";
         String body = "You have a new message from Aria.";
 
         if (message.getNotification() != null) {
-            if (message.getNotification().getTitle() != null) {
-                title = message.getNotification().getTitle();
-            }
-            if (message.getNotification().getBody() != null) {
-                body = message.getNotification().getBody();
-            }
+            if (message.getNotification().getTitle() != null) title = message.getNotification().getTitle();
+            if (message.getNotification().getBody() != null) body = message.getNotification().getBody();
         }
 
         if (message.getData() != null) {
@@ -57,7 +55,10 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
             }
         }
 
-        showNotification(title, body, message.getMessageId());
+        String id = message.getData() != null && message.getData().get("id") != null
+                ? message.getData().get("id")
+                : message.getMessageId();
+        showNotification(title, body, id);
     }
 
     private void showNotification(String title, String body, String id) {
@@ -73,7 +74,7 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
             channel.setDescription("Messages and proactive notifications from Aria");
             channel.enableVibration(true);
             channel.setShowBadge(true);
-            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             Uri sound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
             AudioAttributes audio = new AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
@@ -85,7 +86,7 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int requestCode = id == null ? (int) System.currentTimeMillis() : id.hashCode();
+        int requestCode = id == null || id.isEmpty() ? (int) System.currentTimeMillis() : id.hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this,
                 requestCode,
@@ -93,21 +94,30 @@ public class AriaFirebaseMessagingService extends FirebaseMessagingService {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-                ? new Notification.Builder(this, CHANNEL_ID)
-                : new Notification.Builder(this);
+        Person aria = new Person.Builder()
+                .setName("Aria")
+                .build();
 
-        builder.setSmallIcon(R.drawable.ic_stat_aria)
+        NotificationCompat.MessagingStyle messagingStyle = new NotificationCompat.MessagingStyle(aria)
+                .setConversationTitle("Aria")
+                .addMessage(body, System.currentTimeMillis(), aria);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_aria)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setStyle(new Notification.BigTextStyle().bigText(body))
+                .setStyle(messagingStyle)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
-                .setCategory(Notification.CATEGORY_MESSAGE)
-                .setPriority(Notification.PRIORITY_HIGH)
-                .setDefaults(Notification.DEFAULT_ALL)
-                .setVisibility(Notification.VISIBILITY_PUBLIC)
-                .setVibrate(new long[]{0, 200, 100, 200});
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setGroup(GROUP_KEY)
+                .setOnlyAlertOnce(false)
+                .setShowWhen(true)
+                .setWhen(System.currentTimeMillis())
+                .setNumber(1);
 
         nm.notify(requestCode, builder.build());
     }
