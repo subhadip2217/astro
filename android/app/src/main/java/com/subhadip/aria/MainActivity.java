@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String ARIA_URL = "https://aigf-wheat.vercel.app/";
     private static final String FCM_REGISTER_URL = "https://aigf-wheat.vercel.app/api/push/fcm";
     private static final String AUTH_SCHEME = "aria";
-    private static final String NOTIFICATION_CHANNEL_ID = "aria_messages_v2";
+    private static final String NOTIFICATION_CHANNEL_ID = "aria_messages_v3";
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -79,9 +79,7 @@ public class MainActivity extends AppCompatActivity {
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful() || task.getResult() == null) return;
                     getSharedPreferences("aria_push", MODE_PRIVATE)
-                            .edit()
-                            .putString("fcm_token", task.getResult())
-                            .apply();
+                            .edit().putString("fcm_token", task.getResult()).apply();
                 });
     }
 
@@ -119,11 +117,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationsGranted()) {
-            ActivityCompat.requestPermissions(
-                    this,
+            ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    NOTIFICATION_PERMISSION_REQUEST
-            );
+                    NOTIFICATION_PERMISSION_REQUEST);
         }
     }
 
@@ -142,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
                 ? new Notification.Builder(this, NOTIFICATION_CHANNEL_ID)
                 : new Notification.Builder(this);
         builder.setSmallIcon(com.subhadip.aria.R.drawable.ic_stat_aria)
-                .setContentTitle(title == null || title.isEmpty() ? "Aria \uD83D\uDC96" : title)
+                .setContentTitle(title == null || title.isEmpty() ? "Aria 💕" : title)
                 .setContentText(safeBody)
                 .setStyle(new Notification.BigTextStyle().bigText(safeBody))
                 .setAutoCancel(true)
@@ -161,11 +157,7 @@ public class MainActivity extends AppCompatActivity {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (!task.isSuccessful() || task.getResult() == null) return;
             final String fcmToken = task.getResult();
-            getSharedPreferences("aria_push", MODE_PRIVATE)
-                    .edit()
-                    .putString("fcm_token", fcmToken)
-                    .apply();
-
+            getSharedPreferences("aria_push", MODE_PRIVATE).edit().putString("fcm_token", fcmToken).apply();
             networkExecutor.execute(() -> {
                 HttpURLConnection conn = null;
                 try {
@@ -177,42 +169,28 @@ public class MainActivity extends AppCompatActivity {
                     conn.setDoOutput(true);
                     conn.setRequestProperty("Content-Type", "application/json");
                     conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-
                     JSONObject body = new JSONObject();
                     body.put("token", fcmToken);
                     body.put("platform", "android");
                     byte[] payload = body.toString().getBytes(StandardCharsets.UTF_8);
-                    try (OutputStream os = conn.getOutputStream()) {
-                        os.write(payload);
-                    }
+                    try (OutputStream os = conn.getOutputStream()) { os.write(payload); }
                     conn.getResponseCode();
                 } catch (Exception ignored) {
-                } finally {
-                    if (conn != null) conn.disconnect();
-                }
+                } finally { if (conn != null) conn.disconnect(); }
             });
         });
     }
 
     public final class AriaNotificationBridge {
-        @JavascriptInterface
-        public String getNotificationPermission() {
-            return notificationPermissionState();
-        }
-
-        @JavascriptInterface
-        public String requestNotificationPermission() {
+        @JavascriptInterface public String getNotificationPermission() { return notificationPermissionState(); }
+        @JavascriptInterface public String requestNotificationPermission() {
             MainActivity.this.requestNotificationPermission();
             return notificationPermissionState();
         }
-
-        @JavascriptInterface
-        public void showNotification(String title, String body, String id) {
+        @JavascriptInterface public void showNotification(String title, String body, String id) {
             runOnUiThread(() -> showAriaNotification(title, body, id));
         }
-
-        @JavascriptInterface
-        public void registerPushToken(String accessToken) {
+        @JavascriptInterface public void registerPushToken(String accessToken) {
             if (accessToken == null || accessToken.isEmpty()) return;
             registerFcmTokenWithBackend(accessToken);
         }
@@ -245,8 +223,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             String accessJson = JSONObject.quote(pendingAccessToken);
             String refreshJson = JSONObject.quote(pendingRefreshToken);
-            String js = "(async()=>{if(window.__ARIA_SET_AUTH){return await window.__ARIA_SET_AUTH("
-                    + accessJson + "," + refreshJson + ");}return false;})()";
+            String js = "(async()=>{if(window.__ARIA_SET_AUTH){return await window.__ARIA_SET_AUTH(" + accessJson + "," + refreshJson + ");}return false;})()";
             webView.evaluateJavascript(js, value -> {
                 pendingAccessToken = null;
                 pendingRefreshToken = null;
@@ -261,143 +238,71 @@ public class MainActivity extends AppCompatActivity {
         webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
         webView.getSettings().setAllowFileAccess(false);
         webView.getSettings().setAllowContentAccess(true);
-        webView.getSettings().setUserAgentString(
-                webView.getSettings().getUserAgentString() + " AriaAndroid/1.1"
-        );
+        webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setLoadWithOverviewMode(false);
+        webView.getSettings().setBuiltInZoomControls(false);
+        webView.getSettings().setDisplayZoomControls(false);
+        webView.getSettings().setTextZoom(100);
+        webView.getSettings().setUserAgentString(webView.getSettings().getUserAgentString() + " AriaAndroid/1.2");
 
         webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageFinished(WebView view, String url) {
+            @Override public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectPendingSession();
                 view.evaluateJavascript(
-                        "(async()=>{try{if(window.__ARIA_GET_ACCESS_TOKEN){const t=await window.__ARIA_GET_ACCESS_TOKEN();"
-                                + "if(t&&window.AriaAndroidNotifications){window.AriaAndroidNotifications.registerPushToken(t);}}"
-                                + "}catch(e){}})()",
+                        "(async()=>{try{if(window.__ARIA_GET_ACCESS_TOKEN){const t=await window.__ARIA_GET_ACCESS_TOKEN();if(t&&window.AriaAndroidNotifications){window.AriaAndroidNotifications.registerPushToken(t);}}}catch(e){}})()",
                         null
                 );
             }
-
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) {
-                    handleAuthCallback(new Intent(Intent.ACTION_VIEW, uri));
-                    return true;
-                }
+                if (AUTH_SCHEME.equalsIgnoreCase(uri.getScheme())) { handleAuthCallback(new Intent(Intent.ACTION_VIEW, uri)); return true; }
                 String host = uri.getHost();
-                if (host != null && (host.equals("aigf-wheat.vercel.app") || host.endsWith(".vercel.app"))) {
-                    view.loadUrl(uri.toString());
-                    return true;
-                }
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                } catch (Exception ignored) {}
+                if (host != null && (host.equals("aigf-wheat.vercel.app") || host.endsWith(".vercel.app"))) { view.loadUrl(uri.toString()); return true; }
+                try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
                 return true;
             }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onShowFileChooser(
-                    WebView webView,
-                    ValueCallback<Uri[]> filePathCallback,
-                    FileChooserParams fileChooserParams
-            ) {
-                if (MainActivity.this.filePathCallback != null) {
-                    MainActivity.this.filePathCallback.onReceiveValue(null);
-                }
+            @Override public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                if (MainActivity.this.filePathCallback != null) MainActivity.this.filePathCallback.onReceiveValue(null);
                 MainActivity.this.filePathCallback = filePathCallback;
                 Intent intent = fileChooserParams.createIntent();
-                try {
-                    startActivityForResult(intent, FILE_CHOOSER_REQUEST);
-                } catch (Exception e) {
-                    MainActivity.this.filePathCallback = null;
-                    return false;
-                }
+                try { startActivityForResult(intent, FILE_CHOOSER_REQUEST); }
+                catch (Exception e) { MainActivity.this.filePathCallback = null; return false; }
                 return true;
             }
-
-            @Override
-            public void onPermissionRequest(final PermissionRequest request) {
+            @Override public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
                     boolean needsCamera = false, needsMic = false;
                     for (String resource : request.getResources()) {
                         if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) needsCamera = true;
                         if (PermissionRequest.RESOURCE_AUDIO_CAPTURE.equals(resource)) needsMic = true;
                     }
-                    boolean cameraGranted = !needsCamera
-                            || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
-                            == PackageManager.PERMISSION_GRANTED;
-                    boolean micGranted = !needsMic
-                            || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
-                            == PackageManager.PERMISSION_GRANTED;
-                    if (cameraGranted && micGranted) {
-                        request.grant(request.getResources());
-                    } else {
+                    boolean cameraGranted = !needsCamera || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+                    boolean micGranted = !needsMic || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+                    if (cameraGranted && micGranted) request.grant(request.getResources());
+                    else {
                         pendingPermissionRequest = request;
-                        ActivityCompat.requestPermissions(
-                                MainActivity.this,
-                                new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO},
-                                MEDIA_PERMISSION_REQUEST
-                        );
+                        ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO}, MEDIA_PERMISSION_REQUEST);
                     }
                 });
             }
         });
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    @Override protected void onSaveInstanceState(Bundle outState) { webView.saveState(outState); super.onSaveInstanceState(outState); }
+    @Override protected void onDestroy() { if (webView != null) webView.destroy(); networkExecutor.shutdownNow(); super.onDestroy(); }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == MEDIA_PERMISSION_REQUEST && pendingPermissionRequest != null) {
             boolean allGranted = true;
-            for (int result : grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allGranted = false;
-                    break;
-                }
-            }
+            for (int result : grantResults) if (result != PackageManager.PERMISSION_GRANTED) allGranted = false;
             if (allGranted) pendingPermissionRequest.grant(pendingPermissionRequest.getResources());
             else pendingPermissionRequest.deny();
             pendingPermissionRequest = null;
         }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == FILE_CHOOSER_REQUEST && filePathCallback != null) {
-            Uri[] results = null;
-            if (resultCode == Activity.RESULT_OK && data != null) {
-                if (data.getClipData() != null) {
-                    int count = data.getClipData().getItemCount();
-                    results = new Uri[count];
-                    for (int i = 0; i < count; i++) {
-                        results[i] = data.getClipData().getItemAt(i).getUri();
-                    }
-                } else if (data.getData() != null) {
-                    results = new Uri[]{data.getData()};
-                }
-            }
-            filePathCallback.onReceiveValue(results);
-            filePathCallback = null;
-        }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        webView.saveState(outState);
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onDestroy() {
-        networkExecutor.shutdownNow();
-        if (webView != null) {
-            webView.stopLoading();
-            webView.destroy();
-        }
-        super.onDestroy();
     }
 }
